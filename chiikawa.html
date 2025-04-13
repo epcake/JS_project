@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>chiikawa</title>
+</head>
+
+<body
+    style="background-color:bisque; display: flex; flex-flow: column; align-items:center; height: 100vh; width: 100vw; margin: 0;">
+    <div id="rank" style="display: flex; align-items: center; height: 5%;"></div>
+
+    <div style="display: flex; justify-content: space-around; height: 60%; width: 100%;">
+        <div style="width: 15%; display: flex; flex-flow: column; justify-content: space-evenly;">
+            <button id="yes" style="display: none; height: 25%;">是</button>
+            <button id="no" style="display: none; height: 25%;">否</button>
+        </div>
+
+        <canvas id="canvas"
+            style="width: 60%; height:auto; background-image: url('src/background.png') ; background-size:cover; background-position: center; display: none;"></canvas>
+        <img id="cover1" src="src/cover1.jpg" style="display:none;">
+        <img id="cover2" src="src/cover2.jpg" style="display:none;">
+        <div style="width: 15%; display: flex; flex-flow: column; justify-content: space-around; align-items: center;">
+            <div id="item" style="text-align: center;"></div>
+            <button id="uphp" onclick="up(hp)"></button>
+            <button id="upattack" onclick="up(attack)"></button>
+            <button id="updefense" onclick="up(defense)"></button>
+        </div>
+    </div>
+
+    <div id="text" style="height:40%; overflow-y: auto;"></div>
+
+    <img id="background" src="src/background.png" style="display:none;">
+    <img id="Candy" src="src/Candy.png" style="display:none;">
+    <img id="Usagi" src="src/Usagi.webp" style="display:none;">
+    <img id="Hachiware" src="src/Hachiware.png" style="display:none;">
+    <img id="Goblin" src="src/Goblin.png" style="display:none;">
+
+</body>
+
+<style>
+    button {
+        font-size: 1rem;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+    }
+</style>
+
+<script>
+    //demo
+    var speed = 1000;
+    async function wait() {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                resolve();
+            }, speed);
+        });
+    };
+    /** @type {HTMLCanvasElement} */
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+
+    var play = Number(localStorage.getItem("play")) || 0;
+    window.onload = async () => {
+        if (!localStorage.length) {
+            cover1.style.display = "block";
+            await wait();
+            await wait();
+            await wait();
+            cover1.style.display = "none";
+            cover2.style.display = "block";
+            await new Promise((resolve) => {
+                cover2.addEventListener("click", () => {
+                    cover2.style.display = "none";
+                    play = 3;
+                    resolve();
+                });
+            });
+        }
+        canvas.style.display = "block";
+        canvas.width = canvas.offsetWidth;
+        canvas.height = canvas.offsetHeight;
+        ctx.font = canvas.height / 10 + "px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText("點擊開始討伐", canvas.width / 2, canvas.height / 2);
+        canvas.addEventListener("click", start);
+
+        setInterval(() => { //time
+            if (play < 5) {
+                if (time > 0) {
+                    time -= 1;
+                } else {
+                    play += 1;
+                    time = 60;
+                }
+            }
+            localStorage.setItem("play", play);
+            localStorage.setItem("time", time);
+            localStorage.setItem("candy", candy);
+            localStorage.setItem("hp", player.hp);
+            localStorage.setItem("attack", player.attack);
+            localStorage.setItem("defense", player.defense);
+            localStorage.setItem("hpcost", hp.cost);
+            localStorage.setItem("attackcost", attack.cost);
+            localStorage.setItem("defensecost", defense.cost);
+            item.innerHTML = "可討伐次數<br>" + play + " / 5";
+            if (time < 60) item.innerHTML += "<br>剩餘 " + time + " 秒恢復";
+            item.innerHTML += "<br><br>口哨糖<br>" + candy;
+            uphp.innerHTML = "生命 : " + player.hp + "<br>花費 " + hp.cost + " 提升至<br>" + Math.round(player.hp * 1.1);
+            upattack.innerHTML = "攻擊 : " + player.attack + "<br>花費 " + attack.cost + " 提升至<br>" + Math.round(player.attack * 1.1);
+            updefense.innerHTML = "防禦 : " + player.defense + "<br>花費 " + defense.cost + " 提升至<br>" + (player.defense + 1);
+        }, 1000);
+    }
+
+    var record = text.innerHTML;
+    setInterval(() => {
+        if (record != text.innerHTML) text.scrollTop = text.scrollHeight
+        record = text.innerHTML;
+    }, speed / 2);
+
+    var option = 0;
+    var time = localStorage.getItem("time") || 60;
+    var topday = localStorage.getItem("topday") || 0;
+    var day = 0;
+    rank.innerHTML = "最多存活 : " + topday + " 天";
+    var candy = Number(localStorage.getItem("candy")) || 0;
+    const player = {
+        hp: Number(localStorage.getItem("hp")) || 100,
+        attack: Number(localStorage.getItem("attack")) || 10,
+        defense: Number(localStorage.getItem("defense")) || 0,
+        damage: 0
+    };
+    const now = {};
+    Object.assign(now, player);
+    var enemy = {};
+    const hp = {
+        cost: Number(localStorage.getItem("hpcost")) || 1,
+        name: "hp"
+    };
+    const attack = {
+        cost: Number(localStorage.getItem("attackcost")) || 1,
+        name: "attack"
+    };
+    const defense = {
+        cost: Number(localStorage.getItem("defensecost")) || 1,
+        name: "defense"
+    };
+
+    async function start() {
+        if (play > 0) {
+            canvas.removeEventListener("click", start);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            play -= 1;
+            document.querySelectorAll("button[id^='up']").forEach(function (button) {
+                button.disabled = "true";
+            });
+            text.innerHTML = "";
+            Object.assign(now, player);
+            now.maxhp = now.hp;
+            let event = "";
+            draw();
+
+            for (day = 1; now.hp > 0; day++) {
+                text.innerHTML += "第 " + day + " 天 : 你遇到了 ";
+                await wait();
+                switch (Math.floor(Math.random() * 3 + 1)) {
+                    case 1:
+                        event = Usagi;
+                        picture(event);
+                        await battle(event);
+                        break;
+                    case 2:
+                        event = Hachiware;
+                        picture(event);
+                        await battle(event);
+                        break;
+                    case 3:
+                        event = Goblin;
+                        picture(event);
+                        text.innerHTML += event.id;
+                        await wait();
+                        text.innerHTML += "<br>要理 " + event.id + " 嗎?<br>";
+
+                        yes.style.display = "block";
+                        no.style.display = "block";
+                        let option = await new Promise((resolve) => {
+                            yes.onclick = () => resolve(1);
+                            no.onclick = () => resolve();
+                        });
+                        yes.style.display = "none";
+                        no.style.display = "none";
+
+                        if (option) {
+                            await wait();
+                            switch (Math.floor(Math.random() * 2 + 1)) {
+                                case 1:
+                                    text.innerHTML += event.id + " 教導了你一些戰鬥技巧<br>";
+                                    await wait();
+                                    now.attack += day * 5;
+                                    now.defense += day;
+                                    draw();
+                                    text.innerHTML += "你覺得自己變強了!<br>";
+                                    await wait();
+                                    break;
+                                case 2:
+                                    text.innerHTML += event.id + " 煮了一頓佳餚給你吃<br>";
+                                    await wait();
+                                    now.hp += Math.round(now.maxhp * 0.2);
+                                    now.hp > now.maxhp * 1.2 ? now.hp = Math.round(now.maxhp * 1.2) : "";
+                                    now.maxhp = Math.round(now.maxhp * 1.2);
+                                    draw();
+                                    text.innerHTML += " 你覺得體力恢復了!<br>";
+                                    await wait();
+                                    break;
+                            }
+                        } else {
+                            await wait();
+                            text.innerHTML += event.id + " 離開了 ";
+                            ctx.clearRect(0, canvas.height * 0.11, canvas.width, canvas.height * 0.78);
+                            await wait();
+                            text.innerHTML += "但留下了一些口哨糖<br>";
+                            await get(day * 10);
+                        }
+                        break;
+                }
+                ctx.clearRect(0, canvas.height * 0.11, canvas.width, canvas.height * 0.78);
+                await wait();
+            }
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            alert("討伐結束!撐過了 " + day + " 天!");
+            if (day > topday) {
+                topday = day;
+                localStorage.setItem("topday", topday);
+                rank.innerHTML = "最多存活 : " + topday + " 天";
+            }
+            document.querySelectorAll("button").forEach(function (button) {
+                button.disabled = "";
+            });
+            ctx.textAlign = "center";
+            ctx.fillText("點擊開始討伐", canvas.width / 2, canvas.height / 2);
+            canvas.addEventListener("click", start);
+            enemy = {};
+        } else {
+            alert("體力不足!");
+        }
+    }
+
+    function picture(image) {
+        let scale = Math.min(canvas.width / image.width, canvas.height / image.height);
+        let imagex = image.width * scale * 2 / 3;
+        let imagey = image.height * scale * 2 / 3;
+        ctx.drawImage(image, (canvas.width - imagey) / 2, (canvas.height - imagex) / 2, imagex, imagey);
+    }
+
+    async function battle(target) {
+        text.innerHTML += target.id;
+        await wait();
+        yes.style.display = "block";
+        no.style.display = "block";
+        text.innerHTML += "<br>要攻擊 " + target.id + " 嗎?<br>";
+        let option = await new Promise((resolve) => {
+            yes.onclick = () => resolve(1);
+            no.onclick = () => resolve();
+        });
+        yes.style.display = "none";
+        no.style.display = "none";
+
+
+        if (option || option == undefined && target.id == "Usagi") {
+            return new Promise(async (resolve) => {
+                enemy.maxhp = day * 50;
+                enemy.hp = enemy.maxhp;
+                enemy.attack = day * 10;
+                enemy.defense = day;
+                enemy.damage = 0;
+                if (option == undefined && target.id == "Usagi") {
+                    text.innerHTML += "你反被 " + target.id + " 偷襲了!<br>";
+                    await wait();
+                    round(0);
+                } else {
+                    text.innerHTML += "戰鬥開始!<br>";
+                    await wait();
+                    round(1);
+                }
+
+                async function round(turn) {
+                    draw();
+                    switch (turn % 2) {
+                        case 1:
+                            if (now.hp > 0) {
+                                if (enemy.hp > 0) {
+                                    enemy.damage = now.attack - enemy.defense;
+                                    enemy.hp -= enemy.damage;
+                                    text.innerHTML += "你造成了 " + target.id + " " + enemy.damage + " 點傷害<br>";
+                                    setTimeout(() => round(turn + 1), speed / 2);
+                                    break;
+                                } else {
+                                    enemy.hp = 0;
+                                    text.innerHTML += "戰勝了 " + target.id + " !<br>";
+                                    await get(day * 10);
+                                    resolve();
+                                }
+                            } else {
+                                text.innerHTML += "戰鬥失敗!";
+                                resolve();
+                            }
+                            break;
+                        case 0:
+                            if (enemy.hp > 0) {
+                                now.damage = enemy.attack - now.defense;
+                                now.damage < 1 ? now.damage = 1 : "";
+                                now.hp -= now.damage;
+                                text.innerHTML += target.id + " 對你造成了 " + now.damage + " 點傷害<br>";
+                                now.hp < 0 ? now.hp = 0 : "";
+                            }
+                            setTimeout(() => round(turn + 1), speed / 2);
+                            break;
+                    }
+                }
+            });
+        } else {
+            document.getElementById("yes").style.display = "none";
+            document.getElementById("no").style.display = "none";
+            text.innerHTML += target.id + " 逃跑了!<br>";
+        };
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height * 0.11);
+        ctx.clearRect(0, canvas.height * 0.89, canvas.width, canvas.height);
+
+        // const playerhp = ctx.createLinearGradient(0, 0, 300, 0);
+        // playerhp.addColorStop(0, "red");
+        // playerhp.addColorStop(, "transparent");
+
+        if (now.hp) {
+            ctx.lineWidth = canvas.height / 10;
+            ctx.lineCap = "round";
+            ctx.strokeStyle = "red";
+            ctx.beginPath();
+            ctx.moveTo(canvas.height * 0.05, canvas.height * 0.95);
+            ctx.lineTo(now.hp / now.maxhp * canvas.width * 0.4, canvas.height * 0.95);
+            ctx.stroke();
+
+            // ctx.fillRect(0, canvas.height - 20, now.hp / now.maxhp * canvas.width / 2, 20);
+        }
+        ctx.fillStyle = "red";
+        ctx.fillRect(0, 0, enemy.hp / enemy.maxhp * canvas.width, canvas.height / 10);
+        ctx.fillStyle = "black";
+        ctx.textAlign = "center";
+        ctx.fillText("HP : " + now.hp + " / " + now.maxhp, canvas.width * 0.2, canvas.height * 0.99);
+        if (enemy.hp > 0) ctx.fillText(enemy.hp || "", canvas.width / 2, canvas.height / 10);
+        ctx.textAlign = "right";
+        ctx.fillText("攻擊力 : " + now.attack + " 防禦力 : " + now.defense, canvas.width, canvas.height * 0.99);
+    }
+
+    async function get(money) {
+        ctx.clearRect(0, canvas.height * 0.11, canvas.width, canvas.height * 0.78);
+        await wait();
+        return new Promise((resolve) => {
+            picture(Candy);
+            text.innerHTML += "獲得了 " + money + " 個口哨糖<br>";
+            candy += money;
+            setTimeout(() => {
+                resolve();
+            }, speed);
+        });
+    }
+
+    function up(x) {
+        if (candy - x.cost >= 0) {
+            document.querySelectorAll("button[id^='up']").forEach(function (button) {
+                button.disabled = "true";
+            });
+            candy -= x.cost;
+            x.cost += 1;
+            x == defense ? player[x.name] += 1 : player[x.name] = Math.round(player[x.name] * 1.1);
+            setTimeout(() => {
+                document.querySelectorAll("button[id^='up']").forEach(function (button) {
+                    button.disabled = "";
+                });
+            }, 1000);
+        } else {
+            alert("口哨糖不足!");
+        }
+    }
+</script>
+
+</html>
