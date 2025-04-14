@@ -4,12 +4,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>chiikawa</title>
+    <title>c8kawa</title>
 </head>
 
-<body
-    style="background-color:bisque; display: flex; flex-flow: column; align-items:center; height: 100vh; width: 100vw; margin: 0;">
-    <div id="rank" style="display: flex; align-items: center; height: 5%;"></div>
+<body style="background-color:bisque; display: flex; flex-flow: column; align-items:center; height: 100vh; width: 100vw; margin: 0; font-size: 1.5rem;">
+    <div id="rank" style="display: flex; align-items: center; height: 5%; display: none;"></div>
 
     <div style="display: flex; justify-content: space-around; height: 60%; width: 100%;">
         <div style="width: 15%; display: flex; flex-flow: column; justify-content: space-evenly;">
@@ -80,6 +79,7 @@
                 });
             });
         }
+        rank.style.display = "block";
         canvas.style.display = "block";
         canvas.width = canvas.offsetWidth;
         canvas.height = canvas.offsetHeight;
@@ -212,7 +212,7 @@
                                     now.hp > now.maxhp * 1.2 ? now.hp = Math.round(now.maxhp * 1.2) : "";
                                     now.maxhp = Math.round(now.maxhp * 1.2);
                                     draw();
-                                    text.innerHTML += " 你覺得體力恢復了!<br>";
+                                    text.innerHTML += " 你覺得體力增加了!<br>";
                                     await wait();
                                     break;
                             }
